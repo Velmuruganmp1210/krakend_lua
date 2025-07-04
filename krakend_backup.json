@@ -1,0 +1,29 @@
+{
+  "version": 3,
+  "name": "Async Logging Example",
+  "port": 8080,
+  "endpoints": [
+    {
+      "endpoint": "noticw",
+      "method": "POST",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "host": ["https://jsonplaceholder.typicode.com"],
+          "url_pattern": "/posts",
+          "method": "POST"
+        },
+        {
+          "host": ["http://host.docker.internal:8084"],
+          "url_pattern": "/log",
+          "method": "POST",
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "async": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,175 @@
+{
+  "version": 3,
+  "name": "KrakenD Lua POC",
+  "port": 8080,
+  "timeout": "30s",
+  "cache_ttl": "3600s",
+  "host": ["http://localhost:8085"],
+  "extra_config": {
+    "security/cors": {
+      "allow_origins": ["*"],
+      "allow_methods": ["GET", "POST", "PUT", "DELETE"],
+      "allow_headers": ["*"],
+      "expose_headers": ["Content-Length"],
+      "max_age": "12h"
+    },
+    "telemetry/logging": {
+      "level": "DEBUG",
+      "prefix": "[KRAKEND]",
+      "syslog": false,
+      "stdout": true
+    }
+  },
+  "endpoints": [
+    {
+      "endpoint": "/health",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/get",
+          "host": ["http://api1:80"],
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "endpoint": "/lua-request-modifier",
+      "method": "GET",
+      "extra_config": {
+        "modifier/lua-endpoint": {
+          "sources": ["/etc/krakend/lua_scripts/request_modifier.lua"],
+          "pre": "pre_request()"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/get",
+          "host": ["http://api1:80"],
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "endpoint": "/external_call",
+      "input_type" : "rest",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/posts",
+          "host": [
+            "https://jsonplaceholder.typicode.com"
+          ],
+          "method": "POST",
+          "extra_config": {
+            "modifier/lua-backend": {
+              "sources": [
+                "/etc/krakend/lua_scripts/service_caller.lua"
+              ],
+              "pre": "post_response(request.load())"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/lua-response-modifier",
+      "input_type" : "rest",
+      "method": "POST",
+      "backend": [
+        {
+          "url_pattern": "/posts",
+          "host": [
+            "https://jsonplaceholder.typicode.com"
+          ],
+          "method": "POST",
+          "extra_config": {
+            "modifier/lua-backend": {
+              "sources": [
+                "/etc/krakend/lua_scripts/response_modifier.lua"
+              ],
+              "post": "post_response(response.load())"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/lua-aggregation",
+      "method": "GET",
+      "backend": [
+        {
+          "url_pattern": "/get",
+          "host": ["http://api1:80"],
+          "method": "GET"
+        },
+        {
+          "url_pattern": "/get",
+          "host": ["http://api2:80"],
+          "method": "GET"
+        }
+      ],
+      "extra_config": {
+        "modifier/lua-endpoint": {
+          "sources": ["lua_scripts/aggregation.lua"],
+          "post": "merge_responses(response.get_data())"
+        }
+      }
+    },
+    {
+      "endpoint": "/lua-authentication",
+      "method": "GET",
+      "extra_config": {
+        "modifier/lua-endpoint": {
+          "sources": ["lua_scripts/auth_check.lua"],
+          "pre": "check_authentication(request.get_header('Authorization'))"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/get",
+          "host": ["http://api1:80"],
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "endpoint": "/lua-rate-limit",
+      "method": "GET",
+      "extra_config": {
+        "modifier/lua-endpoint": {
+          "sources": ["lua_scripts/rate_limit.lua"],
+          "pre": "check_rate_limit(request.get_header('X-Client-ID'))"
+        }
+      },
+      "backend": [
+        {
+          "url_pattern": "/get",
+          "host": ["http://api1:80"],
+          "method": "GET"
+        }
+      ]
+    },
+    {
+      "endpoint": "notice",
+      "method": "POST",
+      "output_encoding": "json",
+      "backend": [
+        {
+          "host": ["https://jsonplaceholder.typicode.com"],
+          "url_pattern": "/posts",
+          "method": "POST"
+        },
+        {
+          "host": ["http://host.docker.internal:8084"],
+          "url_pattern": "/log",
+          "method": "POST",
+          "extra_config": {
+            "github.com/devopsfaith/krakend/proxy": {
+              "async": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

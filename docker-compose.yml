@@ -1,0 +1,25 @@
+
+
+services:
+  krakend:
+    image: krakend:2.10.1
+    ports:
+      - "8085:8080"
+    volumes:
+      - ./krakend.json:/etc/krakend/krakend.json
+      - ./lua_scripts:/etc/krakend/lua_scripts
+    command: ["run", "-d", "-c", "/etc/krakend/krakend.json"]
+    depends_on:
+      - api1
+      - api2
+
+  # Mock API services for testing
+  api1:
+    image: kennethreitz/httpbin
+    ports:
+      - "8001:80"
+
+  api2:
+    image: kennethreitz/httpbin
+    ports:
+      - "8002:80"
