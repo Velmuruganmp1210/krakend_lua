@@ -150,14 +150,23 @@
       ]
     },
     {
-      "endpoint": "notice",
+      "endpoint": "/notice",
       "method": "POST",
       "output_encoding": "json",
+      "concurrent_calls": true,
       "backend": [
         {
           "host": ["https://jsonplaceholder.typicode.com"],
           "url_pattern": "/posts",
-          "method": "POST"
+          "method": "POST",
+          "extra_config": {
+            "modifier/lua-backend": {
+              "sources": [
+                "/etc/krakend/lua_scripts/response_modifier_print.lua"
+              ],
+              "post": "post_response(response.load())"
+            }
+          }
         },
         {
           "host": ["http://host.docker.internal:8084"],
@@ -166,6 +175,53 @@
           "extra_config": {
             "github.com/devopsfaith/krakend/proxy": {
               "async": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "@comment": "Feature: Google Pub Sub",
+      "endpoint": "/rawevents",
+      "method": "POST",
+      "backend": [
+        {
+          "host": ["gcppubsub://"],
+          "disable_host_sanitize": true,
+          "extra_config": {
+            "backend/pubsub/publisher": {
+              "topic_url": "projects/learningpoc-465410/topics/my-topic"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "endpoint": "/noticeproxy",
+      "method": "POST",
+      "output_encoding": "json",
+      "concurrent_calls": true,
+      "backend": [
+        {
+          "host": ["https://jsonplaceholder.typicode.com"],
+          "url_pattern": "/posts",
+          "method": "POST",
+          "extra_config": {
+            "modifier/lua-backend": {
+              "sources": [
+                "/etc/krakend/lua_scripts/response_modifier_print.lua"
+              ],
+              "post": "post_response(response.load())"
+            }
+          }
+        },
+        {
+          "host": ["http://host.docker.internal:8084"],
+          "url_pattern": "/log",
+          "method": "POST",
+          "extra_config": {
+            "proxy": {
+              "shadow": true
             }
           }
         }

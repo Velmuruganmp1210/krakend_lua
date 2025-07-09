@@ -8,6 +8,11 @@ services:
     volumes:
       - ./krakend.json:/etc/krakend/krakend.json
       - ./lua_scripts:/etc/krakend/lua_scripts
+      - ./plugin.so:/etc/krakend/plugin/plugin.so
+      - /Users/velmurugan.manickavelu/.config/gcloud/application_default_credentials.json:/etc/krakend/adc.json:ro
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/etc/krakend/adc.json
+
     command: ["run", "-d", "-c", "/etc/krakend/krakend.json"]
     depends_on:
       - api1
